@@ -75,7 +75,7 @@ How can I assist your maintenance operations or flightline diagnostics today?`,
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/ai/copilot', {
+      const response = await fetch((import.meta.env.VITE_API_URL || '') + '/api/ai/copilot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

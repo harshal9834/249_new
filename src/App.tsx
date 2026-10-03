@@ -127,7 +127,7 @@ export default function App() {
 
   const handleAddSchedule = async (sched: Partial<MaintenanceScheduleItem>) => {
     try {
-      const res = await fetch('/api/maintenance/schedules', {
+      const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/maintenance/schedules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sched)
@@ -147,7 +147,7 @@ export default function App() {
 
   const handleReorderPart = async (partId: string, quantity: number) => {
     try {
-      const res = await fetch('/api/inventory/reorder', {
+      const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/inventory/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ partId, quantity })
@@ -163,7 +163,7 @@ export default function App() {
 
   const handleMarkNotifRead = async (id: string) => {
     try {
-      await fetch('/api/notifications/mark-read', {
+      await fetch((import.meta.env.VITE_API_URL || '') + '/api/notifications/mark-read', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })

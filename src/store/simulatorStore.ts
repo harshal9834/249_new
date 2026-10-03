@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { io } from 'socket.io-client';
-const socket = io(); // Connects to same origin
+const socket = io(import.meta.env.VITE_API_URL || ''); // Connects to same origin
 
 import { 
     Aircraft, AircraftStatus, AircraftComponent, FleetCategory, RiskLevel, 
@@ -156,7 +156,7 @@ const publishTelemetry = (aircraft: Aircraft) => {
 };
 
 const publishFault = (aircraftId: string, faultType: string) => {
-    fetch('/api/faults', {
+    fetch((import.meta.env.VITE_API_URL || '') + '/api/faults', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ aircraftId, faultType, description: `Fault injected: ${faultType}` })
@@ -164,7 +164,7 @@ const publishFault = (aircraftId: string, faultType: string) => {
 };
 
 const publishMaintenance = (aircraftId: string, action: string, agency: string, cost: number, downtime: number) => {
-    fetch('/api/maintenance_events', {
+    fetch((import.meta.env.VITE_API_URL || '') + '/api/maintenance_events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ aircraftId, action, agency, cost, downtime })
@@ -442,10 +442,10 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     fetchInitialData: async () => {
         try {
             const [invRes, agRes, recRes, anRes] = await Promise.all([
-                fetch('/api/inventory'),
-                fetch('/api/agencies'),
-                fetch('/api/maintenance_events'),
-                fetch('/api/maintenance-analytics')
+                fetch((import.meta.env.VITE_API_URL || '') + '/api/inventory'),
+                fetch((import.meta.env.VITE_API_URL || '') + '/api/agencies'),
+                fetch((import.meta.env.VITE_API_URL || '') + '/api/maintenance_events'),
+                fetch((import.meta.env.VITE_API_URL || '') + '/api/maintenance-analytics')
             ]);
             
             const inventory = invRes.ok ? await invRes.json() : [];

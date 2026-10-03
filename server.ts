@@ -1,5 +1,6 @@
 // AeroPulse AI - Express Full-Stack Server
 import express, { Request, Response } from 'express';
+import cors from 'cors';
 const app = express();
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -28,6 +29,7 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(express.json());
+app.use(cors({ origin: '*' })); // Allow all origins for Vercel/Render split
 
 // In-memory state
 let aircraftStore: AircraftData[] = [...initialAircraft];
