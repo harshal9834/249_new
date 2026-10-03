@@ -18,6 +18,7 @@ export interface AircraftComponent {
   vibration: number; // IPS
   pressure: number; // PSI
   fuelFlow?: number; // PPH
+  fuelLevel?: number; // %
   voltage?: number; // Volts
   oilPressure?: number; // PSI
   rpm?: number;
@@ -46,6 +47,51 @@ export interface Aircraft {
   baseStation: string;
   callSign: string;
   enginesCount: number;
+  operatingMode?: 'Ground Idle' | 'Taxi' | 'Takeoff' | 'Climb' | 'Cruise' | 'Loiter' | 'Descent' | 'Landing';
+  activeFaults?: string[];
+  throttle?: number;
+  speed?: number;
+  altitude?: number;
+  humidity?: number;
+  windSpeed?: number;
+  ambientPressure?: number;
+  outsideAirTemp?: number;
+  weight?: number;
+  engineLoad?: number;
+  climbRate?: number;
+  heading?: number;
+  bankAngle?: number;
+  pitchAngle?: number;
+  verticalSpeed?: number;
+  groundSpeed?: number;
+  machNumber?: number;
+  angleOfAttack?: number;
+  roll?: number;
+  yaw?: number;
+  airDensity?: number;
+  turbulence?: 'LOW' | 'MEDIUM' | 'HIGH';
+  fuelQuantity?: number;
+  fuelPercentage?: number;
+  fuelTankTemp?: number;
+  fuelPumpStatus?: 'NOMINAL' | 'WARNING' | 'FAILED';
+  fuelLeak?: boolean;
+  batteryVoltage?: number;
+  generatorLoad?: number;
+  busVoltage?: number;
+  powerConsumption?: number;
+  hydraulicPressure?: number;
+  hydraulicTemp?: number;
+  actuatorLoad?: number;
+  leakStatus?: boolean;
+  gearPosition?: 'UP' | 'DOWN' | 'TRANSITION';
+  brakeTemp?: number;
+  tyrePressure?: number;
+  radarStatus?: 'NOMINAL' | 'WARNING' | 'FAILED';
+  gpsHealth?: 'NOMINAL' | 'WARNING' | 'FAILED';
+  insAccuracy?: number;
+  flightComputerStatus?: 'NOMINAL' | 'WARNING' | 'FAILED';
+  communicationStatus?: 'NOMINAL' | 'WARNING' | 'FAILED';
+  payloadWeight?: number;
   components: AircraftComponent[];
 }
 
@@ -140,4 +186,54 @@ export interface EngineStageData {
   rul: number;
   status: AircraftStatus;
   diagnostics: string;
+}
+
+
+export interface MaintenanceRecord {
+  id: string;
+  aircraftId: string;
+  tailNumber: string;
+  componentId: string;
+  componentName: string;
+  actionTaken: string;
+  replacedPartId?: string;
+  replacedPartName?: string;
+  agencyId: string;
+  agencyName: string;
+  dateCompleted: string;
+  downtimeHours: number;
+  cost: number;
+  techId: string;
+  notes: string;
+}
+
+export interface MaintenanceAgency {
+  id: string;
+  name: string;
+  location: string;
+  tier: 'Tier 1 (Base)' | 'Tier 2 (Regional)' | 'Tier 3 (Depot)';
+  status: 'Available' | 'At Capacity' | 'Offline';
+  activeWorkOrders: number;
+  averageTurnaroundHours: number;
+  certificationLevel: string;
+}
+
+export interface FailurePrediction {
+  id: string;
+  aircraftId: string;
+  componentId: string;
+  componentName: string;
+  probabilityScore: number; // 0-100%
+  predictedTimeOfFailure: number; // flight hours remaining
+  contributingFactors: string[];
+  aiConfidence: number;
+  recommendedAgencyId?: string;
+}
+
+export interface MaintenanceAnalytics {
+  mtbfHours: number;      // Mean Time Between Failures
+  mttrHours: number;      // Mean Time To Repair
+  fleetDowntimePct: number; // % of time fleet is down
+  totalMaintenanceCost: number;
+  activeWorkOrdersCount: number;
 }

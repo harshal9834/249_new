@@ -11,19 +11,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  ADMIN
-  FLEET_COMMANDER
-  MAINTENANCE_OFFICER
-  VIEWER
-}
-
-enum FleetCategory {
-  FIGHTER
-  TRANSPORT
-  UAV
-}
-
 enum AircraftStatus {
   OPERATIONAL
   WARNING
@@ -31,236 +18,169 @@ enum AircraftStatus {
   CRITICAL
 }
 
-enum RiskLevel {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-}
-
-enum ComponentType {
-  ENGINE
-  FUEL_SYSTEM
-  HYDRAULIC_SYSTEM
-  AVIONICS
-  ELECTRICAL_SYSTEM
-  LANDING_GEAR
-  AIRFRAME
-}
-
-enum MaintenanceType {
-  PREVENTIVE
-  CORRECTIVE
-  PREDICTIVE
-  DEPOT_OVERHAUL
-}
-
-enum MaintenanceStatus {
-  SCHEDULED
-  IN_PROGRESS
-  COMPLETED
-  OVERDUE
-}
-
-enum AlertSeverity {
-  INFO
-  WARNING
-  CRITICAL
-  MAINTENANCE_DUE
-  INVENTORY_SHORTAGE
-  AI_PREDICTION
-}
-
-model User {
-  id           String       @id @default(uuid())
-  email        String       @unique
-  name         String
-  role         UserRole     @default(MAINTENANCE_OFFICER)
-  squadron     String?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  workOrders   MaintenanceRecord[]
-  auditLogs    AuditLog[]
+enum OperatingPhase {
+  GROUND_IDLE
+  TAXI
+  TAKEOFF
+  CLIMB
+  CRUISE
+  LOITER
+  DESCENT
+  LANDING
 }
 
 model Aircraft {
   id              String             @id
   name            String
   tailNumber      String             @unique
-  category        FleetCategory
   status          AircraftStatus     @default(OPERATIONAL)
+  operatingPhase  OperatingPhase     @default(GROUND_IDLE)
   healthScore     Float              @default(100.0)
-  riskLevel       RiskLevel          @default(LOW)
   flightHours     Float              @default(0.0)
-  missionHours    Float              @default(0.0)
-  lastMaintenance DateTime           @default(now())
-  nextInspection  DateTime
-  baseStation     String
-  squadron        String
-  specifications  Json?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 
-  components      AircraftComponent[]
+  engines         Engine[]
+  telemetry       Telemetry[]
+  faults          Fault[]
   maintenanceLogs MaintenanceRecord[]
-  schedules       MaintenanceSchedule[]
-  telemetryStream ComponentHealth[]
-  predictions     Prediction[]
-  notifications   Notification[]
+  predictions     AiPrediction[]
+  digitalTwin     DigitalTwinState?
 }
 
-model AircraftComponent {
+model Engine {
   id              String            @id @default(uuid())
   aircraftId      String
-  name            String
-  type            ComponentType
   serialNumber    String            @unique
   healthScore     Float             @default(100.0)
-  riskLevel       RiskLevel         @default(LOW)
-  rulHours        Float             @default(500.0)
-  installedAt     DateTime          @default(now())
-  operatingHours  Float             @default(0.0)
-  status          AircraftStatus    @default(OPERATIONAL)
-  subSystem       String?
-
+  vibrationBase   Float             @default(0.2)
+  temperatureBase Float             @default(400)
+  
   aircraft        Aircraft          @relation(fields: [aircraftId], references: [id], onDelete: Cascade)
-  healthMetrics   ComponentHealth[]
-  predictions     Prediction[]
-  parts           SparePart[]
 }
 
-model ComponentHealth {
-  id              String            @id @default(uuid())
+model Telemetry {
+  time            DateTime          @default(now())
   aircraftId      String
-  componentId     String
-  timestamp       DateTime          @default(now())
-  rpm             Float?
-  temperature     Float?            // in Celsius
-  vibration       Float?            // in IPS (inches per second)
-  pressure        Float?            // in PSI
-  fuelFlow        Float?            // in PPH (lbs per hour)
-  voltage         Float?            // in Volts
-  oilPressure     Float?            // in PSI
-  healthScore     Float
+  rpm             Float
+  temperature     Float
+  vibration       Float
+  oilPressure     Float
+  fuelFlow        Float
+  throttle        Float
+  speed           Float
+  altitude        Float
+  outsideAirTemp  Float
+  weight          Float
+  engineLoad      Float
+  climbRate       Float
+  heading         Float
+  bankAngle       Float
+  pitchAngle      Float
+  verticalSpeed   Float
+  // --- New Additions ---
+  groundSpeed     Float             @default(0)
+  machNumber      Float             @default(0)
+  angleOfAttack   Float             @default(0)
+  roll            Float             @default(0)
+  yaw             Float             @default(0)
+  airDensity      Float             @default(1.225)
+  humidity        Float             @default(50)
+  windSpeed       Float             @default(0)
+  pressure        Float             @default(1013)
+  turbulence      String            @default("LOW")
+  fuelQuantity    Float             @default(100)
+  fuelPercentage  Float             @default(100)
+  fuelTankTemp    Float             @default(20)
+  fuelPumpStatus  String            @default("NOMINAL")
+  fuelLeak        Boolean           @default(false)
+  batteryVoltage  Float             @default(28.0)
+  generatorLoad   Float             @default(40.0)
+  busVoltage      Float             @default(28.0)
+  powerConsumption Float            @default(15.0)
+  hydraulicPressure Float           @default(3000.0)
+  hydraulicTemp   Float             @default(60.0)
+  actuatorLoad    Float             @default(25.0)
+  leakStatus      Boolean           @default(false)
+  gearPosition    String            @default("DOWN")
+  brakeTemp       Float             @default(100.0)
+  tyrePressure    Float             @default(200.0)
+  radarStatus     String            @default("NOMINAL")
+  gpsHealth       String            @default("NOMINAL")
+  insAccuracy     Float             @default(99.9)
+  flightComputerStatus String       @default("NOMINAL")
+  communicationStatus String        @default("NOMINAL")
 
   aircraft        Aircraft          @relation(fields: [aircraftId], references: [id], onDelete: Cascade)
-  component       AircraftComponent @relation(fields: [componentId], references: [id], onDelete: Cascade)
 
-  @@index([aircraftId, timestamp])
-  @@index([componentId, timestamp])
+  @@id([time, aircraftId])
+}
+
+model Fault {
+  id              String            @id @default(uuid())
+  aircraftId      String
+  type            String            // e.g. "ENGINE_OVERHEAT"
+  description     String
+  isActive        Boolean           @default(true)
+  injectedAt      DateTime          @default(now())
+  resolvedAt      DateTime?
+
+  aircraft        Aircraft          @relation(fields: [aircraftId], references: [id], onDelete: Cascade)
 }
 
 model MaintenanceRecord {
   id              String            @id @default(uuid())
   aircraftId      String
-  technicianId    String?
-  type            MaintenanceType
-  description     String
+  agencyId        String
+  actionTaken     String
+  cost            Float
+  downtimeHours   Float
   performedAt     DateTime          @default(now())
-  durationHours   Float
-  cost            Float?
-  componentsServiced String[]
-  findings        String?
-  correctiveAction String?
 
   aircraft        Aircraft          @relation(fields: [aircraftId], references: [id], onDelete: Cascade)
-  technician      User?             @relation(fields: [technicianId], references: [id])
+  agency          MaintenanceAgency @relation(fields: [agencyId], references: [id])
 }
 
-model MaintenanceSchedule {
+model AiPrediction {
   id              String            @id @default(uuid())
   aircraftId      String
-  title           String
-  description     String
-  type            MaintenanceType
-  priority        RiskLevel         @default(MEDIUM)
-  status          MaintenanceStatus @default(SCHEDULED)
-  scheduledStart  DateTime
-  scheduledEnd    DateTime
-  bayLocation     String            // e.g. "Hangar Bay 3"
-  estimatedHours  Float
-  assignedSquad   String?
+  anomalyDetected Boolean           @default(false)
+  confidenceScore Float
+  reason          String
+  evidence        String
+  impact          String
+  recommendation  String
+  predictedFailureTime Float
+  createdAt       DateTime          @default(now())
 
   aircraft        Aircraft          @relation(fields: [aircraftId], references: [id], onDelete: Cascade)
 }
 
 model SparePart {
   id              String            @id @default(uuid())
-  partNumber      String            @unique
   name            String
-  category        ComponentType
+  partNumber      String            @unique
   stockQuantity   Int
   minThreshold    Int
   unitCost        Float
-  leadTimeDays    Int
-  criticality     RiskLevel         @default(MEDIUM)
-  binLocation     String
-  forecastDemand30d Int             @default(0)
-
-  componentId     String?
-  component       AircraftComponent? @relation(fields: [componentId], references: [id])
-  transactions    InventoryTransaction[]
 }
 
-model InventoryTransaction {
+model MaintenanceAgency {
   id              String            @id @default(uuid())
-  partId          String
-  quantityChange  Int
-  type            String            // "CONSUMED", "RECEIVED", "RESERVED"
-  referenceOrderId String?
-  timestamp       DateTime          @default(now())
+  name            String
+  location        String
+  tier            String
 
-  part            SparePart         @relation(fields: [partId], references: [id])
+  records         MaintenanceRecord[]
 }
 
-model Prediction {
+model DigitalTwinState {
   id              String            @id @default(uuid())
-  aircraftId      String
-  componentId     String?
-  anomalyDetected Boolean           @default(false)
-  anomalyType     String?
-  failureRiskScore Float            // 0 - 100
-  rulFlightHours  Float             // estimated remaining useful flight hours
-  confidenceScore Float             // 0.0 - 1.0
-  recommendation  String
-  technicalOrder  String?           // e.g. "TO 1C-130J-2-70FI"
-  generatedAt     DateTime          @default(now())
+  aircraftId      String            @unique
+  colorHex        String            @default("#ffffff")
+  engineShakeLevel Float            @default(0.0)
+  highlightAreas  String[]
+  lastUpdated     DateTime          @default(now())
 
   aircraft        Aircraft          @relation(fields: [aircraftId], references: [id], onDelete: Cascade)
-  component       AircraftComponent? @relation(fields: [componentId], references: [id])
-}
-
-model Notification {
-  id              String            @id @default(uuid())
-  aircraftId      String?
-  title           String
-  message         String
-  severity        AlertSeverity     @default(WARNING)
-  isRead          Boolean           @default(false)
-  timestamp       DateTime          @default(now())
-  actionUrl       String?
-
-  aircraft        Aircraft?         @relation(fields: [aircraftId], references: [id])
-}
-
-model FleetMetrics {
-  id              String            @id @default(uuid())
-  timestamp       DateTime          @default(now())
-  totalAircraft   Int
-  operational     Int
-  warning         Int
-  maintenance     Int
-  critical        Int
-  availabilityPct Float
-  mtbfHours       Float
-}
-
-model AuditLog {
-  id              String            @id @default(uuid())
-  userId          String?
-  action          String
-  details         Json?
-  timestamp       DateTime          @default(now())
-
-  user            User?             @relation(fields: [userId], references: [id])
 }

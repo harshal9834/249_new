@@ -24,7 +24,8 @@ export type NavModule =
   | 'maintenance-planner'
   | 'spare-parts'
   | 'fleet-analytics'
-  | 'notifications';
+  | 'notifications'
+  | 'simulator';
 
 interface NavigationProps {
   activeModule: NavModule;
@@ -45,9 +46,9 @@ export const Navigation: React.FC<NavigationProps> = ({
     { id: 'predictive-maintenance', label: 'Predictive AI', icon: Zap },
     { id: 'availability-simulator', label: 'Availability Sim', icon: SlidersHorizontal },
     { id: 'ai-copilot', label: 'AI Copilot', icon: Bot, badge: 'Dual AI' },
-    { id: 'maintenance-planner', label: 'Planner & Depot', icon: CalendarClock },
-    { id: 'spare-parts', label: 'Spare Parts', icon: Package },
-    { id: 'fleet-analytics', label: 'Fleet Analytics', icon: BarChart3 },
+    { id: 'maintenance-planner', label: 'Technical Records', icon: CalendarClock },
+    { id: 'spare-parts', label: 'Spare Parts Depot', icon: Package },
+    { id: 'fleet-analytics', label: 'Maintenance Analytics', icon: BarChart3 },
     { id: 'notifications', label: 'Alerts', icon: Bell, badge: unreadAlertsCount > 0 ? `${unreadAlertsCount}` : undefined, badgeColor: 'bg-red-500 text-white' }
   ];
 

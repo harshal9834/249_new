@@ -130,7 +130,7 @@ export const AvailabilitySimulator: React.FC<AvailabilitySimulatorProps> = ({ ai
                   >
                     <div className="flex items-center space-x-2">
                       <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'}`}>
-                        {isSelected && <span className="text-white text-[9px]">✓</span>}
+                        {isSelected && <span className="text-white text-[9px]"></span>}
                       </div>
                       <span className="font-mono">{ac.tailNumber}</span>
                       <span className="text-slate-500 font-normal">({ac.name})</span>

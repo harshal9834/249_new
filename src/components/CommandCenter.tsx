@@ -159,7 +159,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 rounded bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
-                    ✈
+                    <Plane className="inline w-4 h-4 mr-1" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 leading-tight">Fighter Fleet</h3>
@@ -199,7 +199,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 rounded bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold">
-                    🚚
+                    
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 leading-tight">Transport Fleet</h3>
@@ -239,7 +239,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 rounded bg-teal-50 text-teal-700 flex items-center justify-center font-bold">
-                    🛩
+                    <Plane className="inline w-4 h-4 mr-1" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 leading-tight">UAV Fleet</h3>

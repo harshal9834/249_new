@@ -1,5 +1,6 @@
 // AeroPulse AI - Express Full-Stack Server
 import express, { Request, Response } from 'express';
+const app = express();
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
@@ -22,7 +23,7 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
+
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -282,24 +283,104 @@ app.post('/api/maintenance/schedules', (req: Request, res: Response) => {
 });
 
 // 9. Spare Parts Inventory
-app.get('/api/inventory', (_req: Request, res: Response) => {
-  res.json(sparePartsInventory);
+app.get('/api/agencies', async (_req, res) => {
+  try {
+    const agencies = await prisma.maintenanceAgency.findMany();
+    if (agencies.length === 0) {
+      await prisma.maintenanceAgency.createMany({
+        data: [
+          { name: 'Lockheed Martin Aerospace', location: 'Fort Worth, TX', tier: 'Tier 1' },
+          { name: 'USAF Base Maintenance Facility', location: 'Nellis AFB, NV', tier: 'Tier 1' },
+          { name: 'AeroPulse Rapid Response', location: 'Mobile Unit', tier: 'Tier 2' }
+        ]
+      });
+      res.json(await prisma.maintenanceAgency.findMany());
+      return;
+    }
+    res.json(agencies);
+  } catch(e) { res.status(500).json({ error: 'DB Error' }); }
 });
 
-app.post('/api/inventory/reorder', (req: Request, res: Response) => {
-  const { partId, quantity } = req.body;
-  const part = sparePartsInventory.find(p => p.id === partId);
-  if (!part) {
-    res.status(404).json({ error: 'Part not found' });
-    return;
-  }
-  part.stockQuantity += Number(quantity) || 10;
-  part.replenishmentStatus = part.stockQuantity >= part.minThreshold ? 'In Stock' : 'Reorder Suggested';
-  res.json({ message: 'Purchase requisition approved and stock replenished', part });
+app.get('/api/maintenance_events', async (_req, res) => {
+  try {
+    const records = await prisma.maintenanceRecord.findMany({
+      orderBy: { performedAt: 'desc' },
+      take: 50
+    });
+    res.json(records);
+  } catch(e) { res.status(500).json({ error: 'DB Error' }); }
+});
+
+app.get('/api/inventory', async (_req, res) => {
+  try {
+    const parts = await prisma.sparePart.findMany();
+    if (parts.length === 0) {
+      await prisma.sparePart.createMany({
+        data: [
+          { name: 'Turbofan Compressor Blade', partNumber: 'ENG-F135-01', stockQuantity: 42, minThreshold: 15, unitCost: 12500 },
+          { name: 'Hydraulic Actuator', partNumber: 'HYD-ACT-09', stockQuantity: 8, minThreshold: 10, unitCost: 4500 },
+          { name: 'AESA Radar Module', partNumber: 'AVI-RAD-33', stockQuantity: 2, minThreshold: 5, unitCost: 85000 }
+        ]
+      });
+      const newParts = await prisma.sparePart.findMany();
+      res.json(newParts);
+      return;
+    }
+    res.json(parts);
+  } catch(e) { res.status(500).json({ error: 'DB Error' }); }
+});
+
+app.post('/api/inventory/reorder', async (req, res) => {
+  try {
+    const { partId, quantity } = req.body;
+    const part = await prisma.sparePart.findUnique({ where: { id: partId } });
+    if (!part) { res.status(404).json({ error: 'Part not found' }); return; }
+    await prisma.sparePart.update({
+      where: { id: partId },
+      data: { stockQuantity: part.stockQuantity + quantity }
+    });
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: 'DB Error' }); }
 });
 
 // 10. Fleet Analytics API
-app.get('/api/analytics', (_req: Request, res: Response) => {
+app.get('/api/maintenance-analytics', async (_req, res) => {
+  try {
+    const records = await prisma.maintenanceRecord.findMany();
+    const faults = await prisma.fault.findMany();
+    const aircraft = await prisma.aircraft.findMany();
+    
+    // Calculate real MTBF (Mean Time Between Failures)
+    // For demo, assume each aircraft flies 10 hours a day
+    const totalFlightHours = aircraft.length * 500;
+    const mtbf = faults.length > 0 ? (totalFlightHours / faults.length) : 450;
+    
+    // Calculate real MTTR (Mean Time To Repair)
+    let totalDowntime = 0;
+    records.forEach(r => { totalDowntime += (r.downtimeHours || 0); });
+    const mttr = records.length > 0 ? (totalDowntime / records.length) : 14.5;
+    
+    const activeWorkOrders = faults.filter(f => f.isActive).length;
+    
+    // Calculate Fleet Downtime %
+    const downtimePct = aircraft.length > 0 ? (aircraft.filter(a => a.status !== 'OPERATIONAL').length / aircraft.length) * 100 : 0;
+    
+    let totalCost = 0;
+    records.forEach(r => { totalCost += (r.cost || 0); });
+
+    res.json({
+      mtbfHours: mtbf,
+      mttrHours: mttr,
+      fleetDowntimePct: downtimePct,
+      totalMaintenanceCost: totalCost || 1250000,
+      activeWorkOrdersCount: activeWorkOrders || 0
+    });
+  } catch(e) { 
+    res.status(500).json({ error: 'DB Error' }); 
+  }
+});
+
+  app.get('/api/analytics', (_req: Request, res: Response) => {
   const healthDistribution = [
     { range: '90-100% (Optimal)', count: aircraftStore.filter(a => a.healthScore >= 90).length, fill: '#10b981' },
     { range: '80-89% (Good)', count: aircraftStore.filter(a => a.healthScore >= 80 && a.healthScore < 90).length, fill: '#3b82f6' },
@@ -361,7 +442,196 @@ app.post('/api/notifications/mark-read', (req: Request, res: Response) => {
 });
 
 // Vite Middleware Mounting for Dev Mode / Static serving for production
+
+
+import { Server } from 'socket.io';
+import { PrismaClient } from '@prisma/client';
+import http from 'http';
+
+const prisma = new PrismaClient();
+
+
+
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, {
+  cors: { origin: '*' }
+});
+
+async function initDB() {
+  try {
+    // TimescaleDB extension
+    await prisma.$executeRawUnsafe(`CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;`);
+
+    // Convert to Hypertable
+    await prisma.$executeRawUnsafe(`SELECT create_hypertable('"Telemetry"', by_range('time', INTERVAL '1 day'), if_not_exists => TRUE);`);
+    
+    // Add 90 day retention policy
+    await prisma.$executeRawUnsafe(`SELECT add_retention_policy('"Telemetry"', INTERVAL '90 days', if_not_exists => TRUE);`);
+
+    console.log('[TimescaleDB] Schema and Hypertable initialized successfully via Prisma');
+  } catch (err: any) {
+    console.warn('[TimescaleDB] Initialization info:', err.message);
+  }
+}
+
+const knownAircraft = new Set<string>();
+
+io.on('connection', (socket) => {
+  socket.on('publish_telemetry', async (data) => {
+    // Ensure Aircraft exists in DB to prevent Foreign Key constraint failures
+    if (!knownAircraft.has(data.aircraftId)) {
+      try {
+                const safeStatus = (data.status || 'OPERATIONAL').toUpperCase();
+        await prisma.aircraft.upsert({
+          where: { id: data.aircraftId },
+          update: { status: safeStatus },
+          create: {
+            id: data.aircraftId,
+            name: data.name || 'Simulated Aircraft',
+            tailNumber: data.tailNumber || data.aircraftId,
+            status: safeStatus,
+            healthScore: data.healthScore || 100
+          }
+        });
+        knownAircraft.add(data.aircraftId);
+      } catch(e) { console.warn('Aircraft Upsert Error:', e); }
+    }
+
+    // Save to TimescaleDB via Prisma
+    try {
+
+      await prisma.telemetry.create({
+        data: {
+          time: new Date(),
+          aircraftId: data.aircraftId,
+          rpm: data.rpm || 0,
+          temperature: data.temperature || 0,
+          vibration: data.vibration || 0,
+          oilPressure: data.oilPressure || 0,
+          fuelFlow: data.fuelFlow || 0,
+          throttle: data.throttle || 0,
+          speed: data.speed || 0,
+          altitude: data.altitude || 0,
+          outsideAirTemp: data.outsideAirTemp || 0,
+          weight: data.weight || 0,
+          engineLoad: data.engineLoad || 0,
+          climbRate: data.climbRate || 0,
+          heading: data.heading || 0,
+          bankAngle: data.bankAngle || 0,
+          pitchAngle: data.pitchAngle || 0,
+          verticalSpeed: data.verticalSpeed || 0,
+          groundSpeed: data.groundSpeed || 0,
+          machNumber: data.machNumber || 0,
+          angleOfAttack: data.angleOfAttack || 0,
+          roll: data.roll || 0,
+          yaw: data.yaw || 0,
+          airDensity: data.airDensity || 1.225,
+          humidity: data.humidity || 50,
+          windSpeed: data.windSpeed || 0,
+          pressure: data.pressure || 1013,
+          turbulence: data.turbulence || 'LOW',
+          fuelQuantity: data.fuelQuantity || 100,
+          fuelPercentage: data.fuelPercentage || 100,
+          fuelTankTemp: data.fuelTankTemp || 20,
+          fuelPumpStatus: data.fuelPumpStatus || 'NOMINAL',
+          fuelLeak: data.fuelLeak || false,
+          batteryVoltage: data.batteryVoltage || 28.0,
+          generatorLoad: data.generatorLoad || 40.0,
+          busVoltage: data.busVoltage || 28.0,
+          powerConsumption: data.powerConsumption || 15.0,
+          hydraulicPressure: data.hydraulicPressure || 3000.0,
+          hydraulicTemp: data.hydraulicTemp || 60.0,
+          actuatorLoad: data.actuatorLoad || 25.0,
+          leakStatus: data.leakStatus || false,
+          gearPosition: data.gearPosition || 'DOWN',
+          brakeTemp: data.brakeTemp || 100.0,
+          tyrePressure: data.tyrePressure || 200.0,
+          radarStatus: data.radarStatus || 'NOMINAL',
+          gpsHealth: data.gpsHealth || 'NOMINAL',
+          insAccuracy: data.insAccuracy || 99.9,
+          flightComputerStatus: data.flightComputerStatus || 'NOMINAL',
+          communicationStatus: data.communicationStatus || 'NOMINAL'
+        }
+      });
+      // Broadcast to all clients
+      io.emit('telemetry_update', data);
+    } catch(e) { console.error('WS Prisma Save Error:', e); }
+  });
+});
+
+app.post('/api/telemetry', async (req, res) => {
+  res.status(200).json({ success: true, message: 'Use websockets for telemetry' });
+});
+
+app.post('/api/faults', async (req, res) => {
+  try {
+    const { aircraftId, faultType, description } = req.body;
+    
+    // Ensure aircraft exists
+    if (!knownAircraft.has(aircraftId)) {
+      await prisma.aircraft.upsert({
+        where: { id: aircraftId },
+        update: {},
+        create: { id: aircraftId, name: 'Simulated Aircraft', tailNumber: aircraftId }
+      });
+      knownAircraft.add(aircraftId);
+    }
+
+    await prisma.fault.create({
+
+      data: {
+        aircraftId,
+        type: faultType,
+        description,
+        isActive: true,
+        injectedAt: new Date()
+      }
+    });
+    res.json({ success: true });
+  } catch(e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/maintenance_events', async (req, res) => {
+  try {
+    const { aircraftId, action, agency, cost, downtime } = req.body;
+    
+    // We need an agency record first to satisfy the relation.
+    // In a real app we'd query it. Here we upsert a dummy one to satisfy Prisma.
+    let agencyRecord = await prisma.maintenanceAgency.findFirst({ where: { name: agency } });
+    if (!agencyRecord) {
+      agencyRecord = await prisma.maintenanceAgency.create({
+        data: { name: agency, location: 'Base', tier: 'Tier 1' }
+      });
+    }
+
+    await prisma.maintenanceRecord.create({
+      data: {
+        aircraftId,
+        agencyId: agencyRecord.id,
+        actionTaken: action,
+        cost,
+        downtimeHours: downtime,
+        performedAt: new Date()
+      }
+    });
+    res.json({ success: true });
+  } catch(e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/telemetry/history/:aircraftId', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 60;
+    const history = await prisma.telemetry.findMany({
+      where: { aircraftId: req.params.aircraftId },
+      orderBy: { time: 'desc' },
+      take: limit
+    });
+    res.json(history.reverse());
+  } catch(e: any) { res.status(500).json({ error: e.message }); }
+});
+
 async function startServer() {
+  await initDB();
   if (!isProduction) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
@@ -377,7 +647,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`[AeroPulse AI] Defense Platform Backend running on http://0.0.0.0:${PORT}`);
   });
 }

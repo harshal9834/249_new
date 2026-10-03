@@ -79,8 +79,8 @@ export const AircraftManagement: React.FC<AircraftManagementProps> = ({
       .sort((a, b) => {
         const valA = a[sortField];
         const valB = b[sortField];
-        if (valA < valB) return sortAsc ? -1 : 1;
-        if (valA > valB) return sortAsc ? 1 : -1;
+        if ((valA as any) < (valB as any)) return sortAsc ? -1 : 1;
+        if ((valA as any) > (valB as any)) return sortAsc ? 1 : -1;
         return 0;
       });
   }, [aircraftList, categoryFilter, statusFilter, searchQuery, sortField, sortAsc]);
@@ -174,7 +174,7 @@ export const AircraftManagement: React.FC<AircraftManagementProps> = ({
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                {cat === 'ALL' ? 'All Wings' : cat === 'Fighter' ? '✈ Fighters' : cat === 'Transport' ? '🚚 Transports' : '🛩 UAVs'}
+                {cat === 'ALL' ? 'All Wings' : cat === 'Fighter' ? <><Plane className="inline w-4 h-4 mr-1" /> Fighters</> : cat === 'Transport' ? ' Transports' : <><Plane className="inline w-4 h-4 mr-1" /> UAVs</>}
               </button>
             ))}
           </div>
@@ -270,7 +270,7 @@ export const AircraftManagement: React.FC<AircraftManagementProps> = ({
                     {/* Category */}
                     <td className="py-3 px-4">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700">
-                        {ac.category === 'Fighter' ? '✈ Fighter' : ac.category === 'Transport' ? '🚚 Transport' : '🛩 UAV'}
+                        {ac.category === 'Fighter' ? <><Plane className="inline w-4 h-4 mr-1" /> Fighter</> : ac.category === 'Transport' ? ' Transport' : <><Plane className="inline w-4 h-4 mr-1" /> UAV</>}
                       </span>
                     </td>
 

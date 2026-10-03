@@ -1,3 +1,4 @@
+import { HistoricalTelemetryTrends } from './HistoricalTelemetryTrends';
 import React, { useState } from 'react';
 import { 
   Zap, 
@@ -19,6 +20,11 @@ interface PredictiveMaintenanceProps {
   insights: PredictiveInsight[];
   onScheduleAction: (insight: PredictiveInsight) => void;
   onAskCopilot: (query: string) => void;
+}
+
+function safeNumber(v: any): number {
+  const n = Number(v);
+  return Number.isFinite(n) && !isNaN(n) ? n : 0;
 }
 
 export const PredictiveMaintenance: React.FC<PredictiveMaintenanceProps> = ({
@@ -248,6 +254,7 @@ export const PredictiveMaintenance: React.FC<PredictiveMaintenanceProps> = ({
           </div>
         )}
       </div>
+          <HistoricalTelemetryTrends />
     </div>
   );
 };

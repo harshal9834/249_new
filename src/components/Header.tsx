@@ -11,7 +11,7 @@ import {
   Plane,
   Clock,
   Layers
-} from 'lucide-react';
+, Rocket } from 'lucide-react';
 import { UserRole, FleetNotification } from '../types/fleet';
 
 interface HeaderProps {
@@ -22,6 +22,7 @@ interface HeaderProps {
   notifications: FleetNotification[];
   onOpenNotifications: () => void;
   availabilityPct: number;
+  onOpenSimulator: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,7 +32,8 @@ export const Header: React.FC<HeaderProps> = ({
   setSelectedWing,
   notifications,
   onOpenNotifications,
-  availabilityPct
+  availabilityPct,
+  onOpenSimulator
 }) => {
   const [roleMenuOpen, setRoleMenuOpen] = React.useState(false);
   const [wingMenuOpen, setWingMenuOpen] = React.useState(false);
@@ -146,6 +148,15 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Section: Notifications & Role */}
         <div className="flex items-center space-x-3">
+          {/* Launch Simulator Button */}
+          <button
+            onClick={onOpenSimulator}
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-slate-900 hover:bg-blue-800 text-white text-xs font-bold rounded-md shadow-sm transition-all ring-1 ring-slate-800 hover:ring-blue-400"
+          >
+            <Rocket className="w-4 h-4" />
+            <span>Launch Simulator</span>
+          </button>
+
           {/* Notification Button */}
           <button
             onClick={onOpenNotifications}
