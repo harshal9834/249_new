@@ -1,0 +1,6 @@
+{
+  "name": "AeroPulse AI - Unified Air Fleet Predictive Maintenance & Digital Twin Platform",
+  "description": "Enterprise-grade military aviation fleet monitoring, aircraft health management, digital twins, AI-driven fault prediction, availability optimization, and maintenance planning.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
